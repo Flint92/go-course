@@ -1,13 +1,18 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
 
+	"github.com/flint92/rssagg/internal/database"
+	"github.com/flint92/rssagg/user"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -20,6 +25,18 @@ func main() {
 	if port == "" {
 		log.Fatal("$PORT must be set")
 	}
+
+	dbURL := os.Getenv("DB_URL")
+	if dbURL == "" {
+		log.Fatal("$DATABASE_URL must be set")
+	}
+
+	conn, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	apiCfg := user.NewApiConfig(database.New(conn))
 
 	router := chi.NewRouter()
 
@@ -35,8 +52,10 @@ func main() {
 	v1Router := chi.NewRouter()
 	v1Router.Get("/health", handlerHealth)
 	v1Router.Get("/err", handlerErr)
+	v1Router.Post("/users", apiCfg.HandlerCreateUser)
+	v1Router.Get("/users", apiCfg.GetUser)
 
-	router.Mount("/v1", v1Router)
+	router.Mount("/api/v1", v1Router)
 
 	srv := &http.Server{
 		Addr:    ":" + port,

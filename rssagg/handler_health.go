@@ -1,7 +1,11 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/flint92/rssagg/respod"
+)
 
 func handlerHealth(w http.ResponseWriter, _ *http.Request) {
-	respondWithJSON(w, http.StatusOK, map[string]string{"health": "UP"})
+	respod.RespondWithJSON(w, http.StatusOK, map[string]string{"health": "UP"})
 }

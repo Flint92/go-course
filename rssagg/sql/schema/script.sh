@@ -1,0 +1,1 @@
+goose postgres postgres://usr:pwd@localhost:5432/rssagg up
