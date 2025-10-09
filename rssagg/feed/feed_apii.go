@@ -1,4 +1,4 @@
-package user
+package feed
 
 import (
 	"fmt"
@@ -19,9 +19,12 @@ func NewClient(db *database.Queries) *Client {
 	return &Client{DB: db}
 }
 
-func (userClient *Client) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (feedClient *Client) CreateFeed(w http.ResponseWriter, r *http.Request, user *database.User) {
+
 	type parameters struct {
-		Name string `json:"name"`
+		Name   string    `json:"name"`
+		Url    string    `json:"url"`
+		UserID uuid.UUID `json:"userID"`
 	}
 
 	var p parameters
@@ -31,20 +34,20 @@ func (userClient *Client) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	usr, err := userClient.DB.CreateUser(r.Context(), database.CreateUserParams{
+	feed := database.CreateFeedParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 		Name:      p.Name,
-	})
+		Url:       p.Url,
+		UserID:    user.ID,
+	}
+
+	createdFeed, err := feedClient.DB.CreateFeed(r.Context(), feed)
 	if err != nil {
-		respod.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error creating user: %v", err))
+		respod.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error creating feed: %v", err))
 		return
 	}
 
-	respod.RespondWithJSON(w, http.StatusCreated, databaseUserToUser(&usr))
-}
-
-func (userClient *Client) GetUser(w http.ResponseWriter, _ *http.Request, user *database.User) {
-	respod.RespondWithJSON(w, http.StatusOK, databaseUserToUser(user))
+	respod.RespondWithJSON(w, http.StatusCreated, databaseFeedToFeed(createdFeed))
 }

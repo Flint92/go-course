@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/flint92/rssagg/feed"
 	"github.com/flint92/rssagg/internal/database"
+	"github.com/flint92/rssagg/middleware"
 	"github.com/flint92/rssagg/user"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -36,7 +38,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	apiCfg := user.NewApiConfig(database.New(conn))
+	queries := database.New(conn)
+
+	userClient := user.NewClient(queries)
+	feedClient := feed.NewClient(queries)
 
 	router := chi.NewRouter()
 
@@ -52,8 +57,9 @@ func main() {
 	v1Router := chi.NewRouter()
 	v1Router.Get("/health", handlerHealth)
 	v1Router.Get("/err", handlerErr)
-	v1Router.Post("/users", apiCfg.HandlerCreateUser)
-	v1Router.Get("/users", apiCfg.GetUser)
+	v1Router.Post("/users", userClient.CreateUser)
+	v1Router.Get("/users", middleware.UserAuth(queries, userClient.GetUser))
+	v1Router.Post("/feeds", middleware.UserAuth(queries, feedClient.CreateFeed))
 
 	router.Mount("/api/v1", v1Router)
 
